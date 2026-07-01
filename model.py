@@ -7,31 +7,14 @@ import torch.optim as optim
 class LinearQNet(nn.Module):
     def __init__(self, input_size, hidden_size, output_size):
         super().__init__()
+
         self.linear1 = nn.Linear(input_size, hidden_size)
         self.linear2 = nn.Linear(hidden_size, output_size)
 
     def forward(self, x):
         x = torch.relu(self.linear1(x))
-        return self.linear2(x)
-
-    def save(self, file_name="model.pth"):
-        model_folder_path = "./model"
-
-        if not os.path.exists(model_folder_path):
-            os.makedirs(model_folder_path)
-
-        file_path = os.path.join(model_folder_path, file_name)
-        torch.save(self.state_dict(), file_path)
-
-    def load(self, file_name="model.pth"):
-        file_path = os.path.join("./model", file_name)
-
-        if os.path.exists(file_path):
-            self.load_state_dict(torch.load(file_path))
-            self.eval()
-            print("Model loaded:", file_path)
-        else:
-            print("No saved model found, training from zero.")
+        x = self.linear2(x)
+        return x
 
 
 class QTrainer:
@@ -71,3 +54,44 @@ class QTrainer:
         loss = self.criterion(target, pred)
         loss.backward()
         self.optimizer.step()
+
+
+def save_checkpoint(model, trainer, n_games, record, file_name="checkpoint.pth"):
+    folder_path = "./model"
+
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+
+    file_path = os.path.join(folder_path, file_name)
+
+    checkpoint = {
+        "model_state": model.state_dict(),
+        "optimizer_state": trainer.optimizer.state_dict(),
+        "n_games": n_games,
+        "record": record
+    }
+
+    torch.save(checkpoint, file_path)
+
+
+def load_checkpoint(model, trainer, file_name="checkpoint.pth"):
+    file_path = os.path.join("./model", file_name)
+
+    if not os.path.exists(file_path):
+        print("No checkpoint found, training from zero.")
+        return 0, 0
+
+    checkpoint = torch.load(file_path)
+
+    model.load_state_dict(checkpoint["model_state"])
+    trainer.optimizer.load_state_dict(checkpoint["optimizer_state"])
+
+    n_games = checkpoint.get("n_games", 0)
+    record = checkpoint.get("record", 0)
+
+    model.train()
+
+    print("Checkpoint loaded:", file_path)
+    print("Loaded games:", n_games, "Loaded record:", record)
+
+    return n_games, record

@@ -2,7 +2,7 @@ import random
 import torch
 from collections import deque
 
-from model import LinearQNet, QTrainer
+from model import LinearQNet, QTrainer, save_checkpoint, load_checkpoint
 from game import SnakeGameAI, SIZE
 
 MAX_MEMORY = 100_000
@@ -15,10 +15,18 @@ class Agent:
         self.n_games = 0
         self.epsilon = 0
         self.gamma = 0.9
+
         self.memory = deque(maxlen=MAX_MEMORY)
+
         self.model = LinearQNet(11, 256, 3)
-        self.model.load()
         self.trainer = QTrainer(self.model, lr=LR, gamma=self.gamma)
+
+        self.record = 0
+
+        self.n_games, self.record = load_checkpoint(
+            self.model,
+            self.trainer
+        )
 
     def remember(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done))
@@ -84,7 +92,7 @@ class Agent:
         return [int(x) for x in state]
 
     def get_action(self, state):
-        self.epsilon = 80 - self.n_games
+        self.epsilon = max(5, 80 - self.n_games)
 
         final_move = [0, 0, 0]
 
@@ -101,7 +109,6 @@ class Agent:
 
 
 def train():
-    record = 0
     game = SnakeGameAI()
     agent = Agent()
 
@@ -114,9 +121,21 @@ def train():
 
         state_new = agent.get_state(game)
 
-        agent.train_short_memory(state_old, final_move, reward, state_new, done)
+        agent.train_short_memory(
+            state_old,
+            final_move,
+            reward,
+            state_new,
+            done
+        )
 
-        agent.remember(state_old, final_move, reward, state_new, done)
+        agent.remember(
+            state_old,
+            final_move,
+            reward,
+            state_new,
+            done
+        )
 
         if done:
             agent.train_long_memory()
@@ -124,11 +143,22 @@ def train():
             game.reset()
             agent.n_games += 1
 
-            if score > record:
-                record = score
-                agent.model.save()
+            if score > agent.record:
+                agent.record = score
 
-            print("Game:", agent.n_games, "Score:", score, "Record:", record)
+            save_checkpoint(
+                agent.model,
+                agent.trainer,
+                agent.n_games,
+                agent.record
+            )
 
+            print(
+                "Game:", agent.n_games,
+                "Score:", score,
+                "Record:", agent.record,
+                "Epsilon:", agent.epsilon
+            )
+            
 if __name__ == "__main__":
     train()
