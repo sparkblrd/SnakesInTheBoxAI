@@ -17,6 +17,7 @@ class Agent:
         self.gamma = 0.9
         self.memory = deque(maxlen=MAX_MEMORY)
         self.model = LinearQNet(11, 256, 3)
+        self.model.load()
         self.trainer = QTrainer(self.model, lr=LR, gamma=self.gamma)
 
     def remember(self, state, action, reward, next_state, done):
@@ -100,6 +101,7 @@ class Agent:
 
 
 def train():
+    record = 0
     game = SnakeGameAI()
     agent = Agent()
 
@@ -122,7 +124,11 @@ def train():
             game.reset()
             agent.n_games += 1
 
-            print("Game:", agent.n_games, "Score:", score)
+            if score > record:
+                record = score
+                agent.model.save()
+
+            print("Game:", agent.n_games, "Score:", score, "Record:", record)
 
 if __name__ == "__main__":
     train()

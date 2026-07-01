@@ -1,16 +1,26 @@
 from random import randrange
 import pygame
+import ctypes
+import ctypes.wintypes
 
 CELL_NUMBER = 16
 SIZE = 10
 RES = CELL_NUMBER * SIZE
 
+GRID_COLOR = (15, 15, 15)
+
 
 class SnakeGameAI:
     def __init__(self):
         pygame.init()
+
         self.sc = pygame.display.set_mode([RES, RES], pygame.NOFRAME)
+        pygame.display.set_caption("Snake AI")
+
         self.clock = pygame.time.Clock()
+
+        self.hwnd = pygame.display.get_wm_info()["window"]
+
         self.reset()
 
     def spawnApple(self, snake):
@@ -24,6 +34,7 @@ class SnakeGameAI:
 
     def reset(self):
         self.direction = "RIGHT"
+
         self.x = randrange(0, RES, SIZE)
         self.y = randrange(0, RES, SIZE)
 
@@ -36,11 +47,35 @@ class SnakeGameAI:
 
         self.frame_iteration = 0
 
-    def playStep(self, action):
+    def handle_window_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    pygame.quit()
+                    quit()
+
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    try:
+                        WM_NCLBUTTONDOWN = 0x00A1
+                        HTCAPTION = 2
+
+                        ctypes.windll.user32.ReleaseCapture()
+                        ctypes.windll.user32.SendMessageW(
+                            self.hwnd,
+                            WM_NCLBUTTONDOWN,
+                            HTCAPTION,
+                            0
+                        )
+                    except Exception as e:
+                        print("Drag error:", e)
+
+    def playStep(self, action):
+        self.handle_window_events()
 
         self.frame_iteration += 1
 
@@ -114,20 +149,29 @@ class SnakeGameAI:
 
         return False
 
+    def draw_grid(self):
+        for x in range(0, RES, SIZE):
+            pygame.draw.line(self.sc, GRID_COLOR, (x, 0), (x, RES), 1)
+
+        for y in range(0, RES, SIZE):
+            pygame.draw.line(self.sc, GRID_COLOR, (0, y), (RES, y), 1)
+
     def draw(self):
         self.sc.fill(pygame.Color("black"))
+
+        self.draw_grid()
 
         for i, j in self.snake:
             pygame.draw.rect(
                 self.sc,
                 pygame.Color("green"),
-                (i, j, SIZE, SIZE)
+                (i + 1, j + 1, SIZE - 2, SIZE - 2)
             )
 
         pygame.draw.rect(
             self.sc,
             pygame.Color("red"),
-            (*self.apple, SIZE, SIZE)
+            (self.apple[0] + 1, self.apple[1] + 1, SIZE - 2, SIZE - 2)
         )
 
         pygame.display.flip()

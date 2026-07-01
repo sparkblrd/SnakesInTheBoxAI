@@ -1,3 +1,4 @@
+import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -12,6 +13,25 @@ class LinearQNet(nn.Module):
     def forward(self, x):
         x = torch.relu(self.linear1(x))
         return self.linear2(x)
+
+    def save(self, file_name="model.pth"):
+        model_folder_path = "./model"
+
+        if not os.path.exists(model_folder_path):
+            os.makedirs(model_folder_path)
+
+        file_path = os.path.join(model_folder_path, file_name)
+        torch.save(self.state_dict(), file_path)
+
+    def load(self, file_name="model.pth"):
+        file_path = os.path.join("./model", file_name)
+
+        if os.path.exists(file_path):
+            self.load_state_dict(torch.load(file_path))
+            self.eval()
+            print("Model loaded:", file_path)
+        else:
+            print("No saved model found, training from zero.")
 
 
 class QTrainer:
@@ -41,7 +61,9 @@ class QTrainer:
             q_new = reward[idx]
 
             if not done[idx]:
-                q_new = reward[idx] + self.gamma * torch.max(self.model(next_state[idx]))
+                q_new = reward[idx] + self.gamma * torch.max(
+                    self.model(next_state[idx])
+                )
 
             target[idx][torch.argmax(action[idx]).item()] = q_new
 
