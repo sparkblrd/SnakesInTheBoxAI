@@ -1,4 +1,5 @@
 import os
+import sys
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -55,9 +56,14 @@ class QTrainer:
         loss.backward()
         self.optimizer.step()
 
+def get_base_path():
+    if getattr(sys, "frozen", False):
+        return os.path.dirname(sys.executable)
+
+    return os.path.dirname(os.path.abspath(__file__))
 
 def save_checkpoint(model, trainer, n_games, record, file_name="checkpoint.pth"):
-    folder_path = "./model"
+    folder_path = os.path.join(get_base_path(), "model")
 
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
@@ -75,7 +81,7 @@ def save_checkpoint(model, trainer, n_games, record, file_name="checkpoint.pth")
 
 
 def load_checkpoint(model, trainer, file_name="checkpoint.pth"):
-    file_path = os.path.join("./model", file_name)
+    file_path = os.path.join(get_base_path(), "model", file_name)
 
     if not os.path.exists(file_path):
         print("No checkpoint found, training from zero.")

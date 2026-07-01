@@ -1,4 +1,5 @@
 from random import randrange
+import sys
 import pygame
 import ctypes
 import ctypes.wintypes
@@ -54,12 +55,12 @@ class SnakeGameAI:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
-                quit()
+                sys.exit()
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     pygame.quit()
-                    quit()
+                    sys.exit()
 
                 if event.key == pygame.K_r:
                     self.reset_ai_requested = True
